@@ -101,7 +101,18 @@ function formatGoldFromCopper(copper) {
 }
 
 function formatSnapshot(unixSeconds) {
-  return new Date(unixSeconds * 1000).toISOString().replace('T', ' ').replace('.000Z', ' UTC');
+  const date = new Date(unixSeconds * 1000);
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Berlin',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZoneName: 'short'
+  }).format(date);
 }
 
 function parseItemState(buffer) {
