@@ -1,4 +1,4 @@
-# WoW Telegram Price Bot for Netlify
+# Telegram bot to call AH prices from WOW
 
 This bot uses Undermine Exchange EU commodity binary data for:
 - Refulgent Copper Ore
