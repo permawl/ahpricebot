@@ -6,15 +6,29 @@ import {
 
 async function buildFullReport() {
   const lines = ['📊 AH report', ''];
+  let lastUpdated = '';
 
   for (const item of Object.values(ITEMS)) {
-    for (const rank of Object.values(item.ranks)) {
+    const rankEntries = Object.values(item.ranks);
+
+    for (const rank of rankEntries) {
       const priceData = await fetchLowestPrice(rank.id);
+      lastUpdated = priceData.snapshotText;
+
       lines.push(
-        `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}: ${priceData.lowestPriceText} | Qty: ${priceData.lowestQuantity} | Updated: ${priceData.snapshotText}`
+        `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}: ${priceData.lowestPriceText} | Qty: ${priceData.lowestQuantity}`
       );
     }
+
+    lines.push('===');
   }
+
+  if (lines[lines.length - 1] === '===') {
+    lines.pop();
+  }
+
+  lines.push('');
+  lines.push(`Updated: ${lastUpdated}`);
 
   return lines.join('\n');
 }
