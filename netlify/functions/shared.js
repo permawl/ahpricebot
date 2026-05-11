@@ -142,7 +142,7 @@ export async function fetchLowestPrice(itemId) {
   return {
     itemId,
     lowestPriceCopper: lowest.price,
-    lowestPriceText: formatGoldFromCopper(lowest.price),
+    lowestPriceText: formatGoldFromCopper(lowest.price * 100),
     lowestQuantity: lowest.quantity,
     totalQuantity: parsed.quantity,
     auctionCount: parsed.auctionCount,
