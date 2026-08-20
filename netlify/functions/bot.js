@@ -19,7 +19,7 @@ const prices = priceData.priceLevels
   .join(' | ');
 
 lines.push(
-  `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}:\n${prices}`
+  `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}:\n${prices}\n`
 );
     }
 
