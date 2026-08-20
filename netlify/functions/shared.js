@@ -148,19 +148,46 @@ export async function fetchLowestPrice(itemId) {
     throw new Error(`Undermine Exchange request failed with ${response.status} for ${url}`);
   }
   const buffer = await response.arrayBuffer();
-  const parsed = parseItemState(buffer);
-  const lowest = parsed.auctions[0] || { price: parsed.price, quantity: parsed.quantity };
-  return {
-    itemId,
-    lowestPriceCopper: lowest.price,
-    lowestPriceText: formatGoldFromCopper(lowest.price * 100),
-    lowestQuantity: lowest.quantity,
-    totalQuantity: parsed.quantity,
-    auctionCount: parsed.auctionCount,
-    snapshot: parsed.snapshot,
-    snapshotText: formatSnapshot(parsed.snapshot),
-    sourceUrl: url
-  };
+const parsed = parseItemState(buffer);
+
+const priceLevels = [];
+for (const auction of parsed.auctions) {
+  const lastLevel = priceLevels[priceLevels.length - 1];
+
+  if (lastLevel && lastLevel.price === auction.price) {
+    lastLevel.quantity += auction.quantity;
+  } else {
+    priceLevels.push({
+      price: auction.price,
+      quantity: auction.quantity
+    });
+  }
+
+  if (priceLevels.length === 3) {
+    break;
+  }
+}
+
+const lowest = priceLevels[0] || {
+  price: parsed.price,
+  quantity: parsed.quantity
+};
+
+return {
+  itemId,
+  lowestPriceCopper: lowest.price,
+  lowestPriceText: formatGoldFromCopper(lowest.price * 100),
+  lowestQuantity: lowest.quantity,
+  priceLevels: priceLevels.map(level => ({
+    priceText: formatGoldFromCopper(level.price * 100),
+    quantity: level.quantity
+  })),
+  totalQuantity: parsed.quantity,
+  auctionCount: parsed.auctionCount,
+  snapshot: parsed.snapshot,
+  snapshotText: formatSnapshot(parsed.snapshot),
+  sourceUrl: url
+};
 }
 
 export function priceMessage(itemLabel, rankLabel, priceData) {
