@@ -14,10 +14,13 @@ async function buildFullReport() {
     for (const rank of rankEntries) {
       const priceData = await fetchLowestPrice(rank.id);
       lastUpdated = priceData.snapshotText;
+const prices = priceData.priceLevels
+  .map(level => `${level.priceText} (${level.quantity})`)
+  .join(' | ');
 
-      lines.push(
-        `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}: ${priceData.lowestPriceText} | Qty: ${priceData.lowestQuantity}`
-      );
+lines.push(
+  `${item.label}${rank.label === 'Price' ? '' : ` — ${rank.label}`}:\n${prices}`
+);
     }
 
     lines.push('===');
