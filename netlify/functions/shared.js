@@ -97,6 +97,11 @@ function formatGoldFromCopper(copper) {
   const gold = Math.floor(copper / 10000);
   const silver = Math.floor((copper % 10000) / 100);
   const copperOnly = copper % 100;
+
+  if (copperOnly === 0) {
+    return `${gold}g ${silver}s`;
+  }
+
   return `${gold}g ${silver}s ${copperOnly}c`;
 }
 
