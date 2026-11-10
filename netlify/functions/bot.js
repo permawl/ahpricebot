@@ -57,7 +57,12 @@ export default async (req) => {
     }
 
     return new Response('ok');
-  } catch (error) {
-    return new Response(`Error: ${error.message}`, { status: 500 });
-  }
+} catch (error) {
+  console.error("BOT ERROR:", error);
+
+  return new Response(
+    `Error: ${error.message}`,
+    { status: 500 }
+  );
+}
 };
