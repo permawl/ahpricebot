@@ -147,6 +147,11 @@ export async function fetchLowestPrice(itemId) {
   const low = itemId & 255;
   const url = `${UE_BASE}/data/${EU_COMMODITY_CONNECTED_ID}/${low}/${itemId}.bin`;
   const response = await fetch(url, {
+  headers: {
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/octet-stream"
+  }
+});
     headers: { 'user-agent': 'personal-telegram-bot/1.0' }
   });
  if (!response.ok) {
