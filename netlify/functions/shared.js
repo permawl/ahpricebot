@@ -152,9 +152,15 @@ export async function fetchLowestPrice(itemId) {
     "Accept": "application/octet-stream"
   }
 });
-    headers: { 'user-agent': 'personal-telegram-bot/1.0' }
-  });
- if (!response.ok) {
+ 
+const response = await fetch(url, {
+  headers: {
+    'user-agent': 'personal-telegram-bot/1.0',
+    'accept': 'application/octet-stream'
+  }
+});
+
+if (!response.ok) {
   const body = await response.text();
 
   console.error("Undermine Exchange error:", {
@@ -163,6 +169,12 @@ export async function fetchLowestPrice(itemId) {
     headers: Object.fromEntries(response.headers.entries()),
     body: body.slice(0, 2000)
   });
+
+  throw new Error(
+    `Undermine Exchange request failed with ${response.status} for ${url}`
+  );
+}
+
 
   throw new Error(
     `Undermine Exchange request failed with ${response.status} for ${url}`
