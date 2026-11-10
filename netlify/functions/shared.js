@@ -149,9 +149,20 @@ export async function fetchLowestPrice(itemId) {
   const response = await fetch(url, {
     headers: { 'user-agent': 'personal-telegram-bot/1.0' }
   });
-  if (!response.ok) {
-    throw new Error(`Undermine Exchange request failed with ${response.status} for ${url}`);
-  }
+ if (!response.ok) {
+  const body = await response.text();
+
+  console.error("Undermine Exchange error:", {
+    status: response.status,
+    url,
+    headers: Object.fromEntries(response.headers.entries()),
+    body: body.slice(0, 2000)
+  });
+
+  throw new Error(
+    `Undermine Exchange request failed with ${response.status} for ${url}`
+  );
+}
   const buffer = await response.arrayBuffer();
 const parsed = parseItemState(buffer);
 
