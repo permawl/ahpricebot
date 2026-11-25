@@ -200,7 +200,9 @@ export async function fetchLowestPrice(itemId) {
     );
   }
 
-  const data = await response.json();
+  const responseJson = await response.json();
+
+  const data = responseJson.result || responseJson;
 
   const auctions = (data.auctions || [])
     .slice()
