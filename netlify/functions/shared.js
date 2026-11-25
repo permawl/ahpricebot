@@ -275,6 +275,88 @@ export async function fetchLowestPrice(itemId) {
   };
 }
 
+async function getBlizzardAccessToken() {
+  const clientId = process.env.BLIZZARD_CLIENT_ID;
+  const clientSecret = process.env.BLIZZARD_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      'Missing BLIZZARD_CLIENT_ID or BLIZZARD_CLIENT_SECRET environment variable'
+    );
+  }
+
+  const basic = Buffer.from(
+    `${clientId}:${clientSecret}`
+  ).toString('base64');
+
+  const response = await fetch('https://oauth.battle.net/token', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${basic}`,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: 'grant_type=client_credentials'
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+
+    console.error('Blizzard OAuth error:', {
+      status: response.status,
+      body: body.slice(0, 1000)
+    });
+
+    throw new Error(
+      `Blizzard OAuth request failed with ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  return data.access_token;
+}
+
+export async function fetchTokenPrice() {
+  const accessToken = await getBlizzardAccessToken();
+
+  const url =
+    'https://eu.api.blizzard.com/data/wow/token/index?namespace=dynamic-eu&locale=en_US';
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+
+    console.error('Blizzard token error:', {
+      status: response.status,
+      url,
+      body: body.slice(0, 1000)
+    });
+
+    throw new Error(
+      `Blizzard token request failed with ${response.status}`
+    );
+  }
+
+  const data = await response.json();
+
+  const updatedSeconds = Math.floor(
+    Number(data.last_updated_timestamp) / 1000
+  );
+
+  return {
+    priceCopper: data.price,
+    priceText: formatGoldFromCopper(data.price),
+    updatedText: Number.isFinite(updatedSeconds)
+      ? formatSnapshot(updatedSeconds)
+      : 'unknown'
+  };
+}
+
 export function priceMessage(
   itemLabel,
   rankLabel,
