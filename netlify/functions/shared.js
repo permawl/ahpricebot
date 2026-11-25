@@ -1,7 +1,6 @@
-
 const TELEGRAM_API = 'https://api.telegram.org';
-const UE_BASE = 'https://undermine.exchange';
-const EU_COMMODITY_CONNECTED_ID = 32513;
+const UNDERMINE_API = 'https://api.undermine.exchange';
+const UNDERMINE_REGION = 'eu';
 
 export const ITEMS = {
   refulgent_copper_ore: {
@@ -47,7 +46,7 @@ export const ITEMS = {
   }
 };
 
-export function getBotToken() {
+function getBotToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!token) {
@@ -59,7 +58,19 @@ export function getBotToken() {
   return token;
 }
 
-export function telegramUrl(method) {
+function getUndermineKey() {
+  const key = process.env.UNDERMINE_API_KEY;
+
+  if (!key) {
+    throw new Error(
+      'Missing UNDERMINE_API_KEY environment variable'
+    );
+  }
+
+  return key;
+}
+
+function telegramUrl(method) {
   return `${TELEGRAM_API}/bot${getBotToken()}/${method}`;
 }
 
@@ -163,69 +174,15 @@ function formatSnapshot(unixSeconds) {
   }).format(date);
 }
 
-function parseItemState(buffer) {
-  const view = new DataView(buffer);
-
-  let offset = 0;
-
-  const u8 = () => view.getUint8(offset++);
-
-  const u16 = () => {
-    const v = view.getUint16(offset, true);
-    offset += 2;
-    return v;
-  };
-
-  const u32 = () => {
-    const v = view.getUint32(offset, true);
-    offset += 4;
-    return v;
-  };
-
-  const version = u8();
-
-  if (![3, 4, 5].includes(version)) {
-    throw new Error(
-      `Unsupported item state version: ${version}`
-    );
-  }
-
-  const snapshot = u32();
-  const price = u32();
-  const quantity = u32();
-  const auctionCount = u16();
-
-  const auctions = [];
-
-  for (let i = 0; i < auctionCount; i++) {
-    auctions.push({
-      price: u32(),
-      quantity: u32()
-    });
-  }
-
-  auctions.sort((a, b) => a.price - b.price);
-
-  return {
-    version,
-    snapshot,
-    price,
-    quantity,
-    auctionCount,
-    auctions
-  };
-}
-
 export async function fetchLowestPrice(itemId) {
-  const low = itemId & 255;
-
-  const url =
-    `${UE_BASE}/data/${EU_COMMODITY_CONNECTED_ID}/${low}/${itemId}.bin`;
+  const url = `${UNDERMINE_API}/v1/region/${UNDERMINE_REGION}/commodities/${itemId}/now.json`;
 
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'personal-telegram-bot/1.0',
-      'Accept': 'application/octet-stream'
+      'Authorization': `ApiKey ${getUndermineKey()}`,
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip',
+      'User-Agent': 'personal-telegram-bot/1.0'
     }
   });
 
@@ -235,9 +192,6 @@ export async function fetchLowestPrice(itemId) {
     console.error('Undermine Exchange error:', {
       status: response.status,
       url,
-      headers: Object.fromEntries(
-        response.headers.entries()
-      ),
       body: body.slice(0, 2000)
     });
 
@@ -246,20 +200,18 @@ export async function fetchLowestPrice(itemId) {
     );
   }
 
-  const buffer = await response.arrayBuffer();
+  const data = await response.json();
 
-  const parsed = parseItemState(buffer);
+  const auctions = (data.auctions || [])
+    .slice()
+    .sort((a, b) => a.price - b.price);
 
   const priceLevels = [];
 
-  for (const auction of parsed.auctions) {
-    const lastLevel =
-      priceLevels[priceLevels.length - 1];
+  for (const auction of auctions) {
+    const lastLevel = priceLevels[priceLevels.length - 1];
 
-    if (
-      lastLevel &&
-      lastLevel.price === auction.price
-    ) {
+    if (lastLevel && lastLevel.price === auction.price) {
       lastLevel.quantity += auction.quantity;
     } else {
       priceLevels.push({
@@ -274,37 +226,35 @@ export async function fetchLowestPrice(itemId) {
   }
 
   const lowest = priceLevels[0] || {
-    price: parsed.price,
-    quantity: parsed.quantity
+    price: data.price,
+    quantity: data.quantity
   };
+
+  const snapshotUnixSeconds = Math.floor(
+    new Date(data.lastSeen || data.lastUpdated).getTime() / 1000
+  );
 
   return {
     itemId,
 
     lowestPriceCopper: lowest.price,
 
-    lowestPriceText: formatGoldFromCopper(
-      lowest.price * 100
-    ),
+    lowestPriceText: formatGoldFromCopper(lowest.price),
 
     lowestQuantity: lowest.quantity,
 
     priceLevels: priceLevels.map(level => ({
-      priceText: formatGoldFromCopper(
-        level.price * 100
-      ),
+      priceText: formatGoldFromCopper(level.price),
       quantity: level.quantity
     })),
 
-    totalQuantity: parsed.quantity,
+    totalQuantity: data.quantity,
 
-    auctionCount: parsed.auctionCount,
+    auctionCount: auctions.length,
 
-    snapshot: parsed.snapshot,
+    snapshot: snapshotUnixSeconds,
 
-    snapshotText: formatSnapshot(
-      parsed.snapshot
-    ),
+    snapshotText: formatSnapshot(snapshotUnixSeconds),
 
     sourceUrl: url
   };
