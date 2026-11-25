@@ -230,9 +230,20 @@ export async function fetchLowestPrice(itemId) {
     quantity: data.quantity
   };
 
-  const snapshotUnixSeconds = Math.floor(
-    new Date(data.lastSeen || data.lastUpdated).getTime() / 1000
-  );
+  const rawSnapshot =
+    data.lastSeen ||
+    data.lastUpdated ||
+    data.snapshot;
+
+  const parsedSnapshot = rawSnapshot
+    ? new Date(rawSnapshot).getTime()
+    : NaN;
+
+  const hasSnapshot = Number.isFinite(parsedSnapshot);
+
+  const snapshotUnixSeconds = hasSnapshot
+    ? Math.floor(parsedSnapshot / 1000)
+    : null;
 
   return {
     itemId,
@@ -254,7 +265,9 @@ export async function fetchLowestPrice(itemId) {
 
     snapshot: snapshotUnixSeconds,
 
-    snapshotText: formatSnapshot(snapshotUnixSeconds),
+    snapshotText: snapshotUnixSeconds
+      ? formatSnapshot(snapshotUnixSeconds)
+      : 'No current listings',
 
     sourceUrl: url
   };
