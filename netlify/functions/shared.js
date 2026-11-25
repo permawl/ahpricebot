@@ -46,7 +46,7 @@ export const ITEMS = {
   }
 };
 
-function getBotToken() {
+export function getBotToken() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!token) {
